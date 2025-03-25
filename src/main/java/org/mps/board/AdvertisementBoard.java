@@ -46,15 +46,29 @@ public class AdvertisementBoard {
     public void publish(Advertisement advertisement,
                         AdvertiserDatabase advertiserDatabase,
                         PaymentGateway paymentGateway) {
-        if (advertisement.advertiser.equals(BOARD_OWNER))
-            advertisementList.add(advertisement);
-        else {
-            if (advertiserDatabase.advertiserIsRegistered(advertisement.advertiser) &&
-                    paymentGateway.advertiserHasFunds(advertisement.advertiser)) {
-                advertisementList.add(advertisement);
-                paymentGateway.chargeAdvertiser(advertisement.advertiser);
-            }
+        if (advertisementList.size() >= MAX_BOARD_SIZE) {
+            throw new AdvertisementBoardException("The advertisement board is full.");
         }
+
+        if (advertisement.advertiser.equals(BOARD_OWNER)) {
+            advertisementList.add(advertisement);
+            return;
+        }
+
+        if (isDuplicate(advertisement)) {
+            return;
+        }
+
+        if (advertiserDatabase.advertiserIsRegistered(advertisement.advertiser) &&
+                paymentGateway.advertiserHasFunds(advertisement.advertiser)) {
+            advertisementList.add(advertisement);
+            paymentGateway.chargeAdvertiser(advertisement.advertiser);
+        }
+    }
+
+    private boolean isDuplicate(Advertisement advertisement) {
+        return advertisementList.stream()
+                .anyMatch(ad -> ad.title.equals(advertisement.title) && ad.advertiser.equals(advertisement.advertiser));
     }
 
     /**
