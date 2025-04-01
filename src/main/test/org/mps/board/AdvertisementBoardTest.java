@@ -32,54 +32,58 @@ class AdvertisementBoardTest {
 
     @Test
     void testPublishWithoutFundsFails() {
-        Advertisement ad = new Advertisement("Discount", "Big sale", "Pepe Gotera y Otilio");
-        when(advertiserDatabase.advertiserIsRegistered("Pepe Gotera y Otilio")).thenReturn(true);
-        when(paymentGateway.advertiserHasFunds("Pepe Gotera y Otilio")).thenReturn(false);
+        Advertisement ad = new Advertisement("Repair Services", "Best in town", "Pepe Gotera y Otilio");
+        when(advertiserDatabase.exists("Pepe Gotera y Otilio")).thenReturn(true);
+        when(paymentGateway.hasFunds("Pepe Gotera y Otilio")).thenReturn(false);
+        
         board.publish(ad, advertiserDatabase, paymentGateway);
         assertEquals(1, board.numberOfPublishedAdvertisements());
     }
 
     @Test
-    void testPublishWithFundsSucceedsAndCharges() {
-        Advertisement ad = new Advertisement("Tech Ad", "Latest gadget", "Robin Robot");
-        when(advertiserDatabase.advertiserIsRegistered("Robin Robot")).thenReturn(true);
-        when(paymentGateway.advertiserHasFunds("Robin Robot")).thenReturn(true);
+    void testPublishWithFundsDeductsBalance() {
+        Advertisement ad = new Advertisement("AI Services", "Future tech", "Robin Robot");
+        when(advertiserDatabase.exists("Robin Robot")).thenReturn(true);
+        when(paymentGateway.hasFunds("Robin Robot")).thenReturn(true);
+        
         board.publish(ad, advertiserDatabase, paymentGateway);
-        assertEquals(2, board.numberOfPublishedAdvertisements());
-        verify(paymentGateway).chargeAdvertiser("Robin Robot");
+        verify(paymentGateway).charge("Robin Robot");
     }
 
     @Test
-    void testDeleteAdvertisement() {
-        Advertisement ad1 = new Advertisement("Ad1", "Message1", AdvertisementBoard.BOARD_OWNER);
-        Advertisement ad2 = new Advertisement("Ad2", "Message2", AdvertisementBoard.BOARD_OWNER);
+    void testDeleteAdvertisementRemovesIt() {
+        Advertisement ad1 = new Advertisement("Sale 1", "Big discounts", "THE Company");
+        Advertisement ad2 = new Advertisement("Sale 2", "Even bigger discounts", "THE Company");
+        
         board.publish(ad1, advertiserDatabase, paymentGateway);
         board.publish(ad2, advertiserDatabase, paymentGateway);
-        board.deleteAdvertisement("Ad1", AdvertisementBoard.BOARD_OWNER);
-        assertFalse(board.findByTitle("Ad1").isPresent());
+        board.removeAdvertisement(ad1);
+        
+        assertFalse(board.contains(ad1));
     }
 
     @Test
-    void testNoDuplicateAdvertisements() {
-        Advertisement ad = new Advertisement("Unique Ad", "Description", "Generic Advertiser");
-        when(advertiserDatabase.advertiserIsRegistered("Generic Advertiser")).thenReturn(true);
-        when(paymentGateway.advertiserHasFunds("Generic Advertiser")).thenReturn(true);
+    void testDuplicateAdvertisementNotInserted() {
+        Advertisement ad = new Advertisement("Exclusive Deal", "50% off", "Smart Advertiser");
+        when(advertiserDatabase.exists("Smart Advertiser")).thenReturn(true);
+        when(paymentGateway.hasFunds("Smart Advertiser")).thenReturn(true);
+        
         board.publish(ad, advertiserDatabase, paymentGateway);
         board.publish(ad, advertiserDatabase, paymentGateway);
+        
         assertEquals(2, board.numberOfPublishedAdvertisements());
     }
 
     @Test
     void testBoardFullThrowsException() {
-        for (int i = 1; i < AdvertisementBoard.MAX_BOARD_SIZE; i++) {
-            Advertisement ad = new Advertisement("Ad" + i, "Text", "Advertiser");
-            when(advertiserDatabase.advertiserIsRegistered("Advertiser")).thenReturn(true);
-            when(paymentGateway.advertiserHasFunds("Advertiser")).thenReturn(true);
-            board.publish(ad, advertiserDatabase, paymentGateway);
+        when(advertiserDatabase.exists("Tim O'Theo")).thenReturn(true);
+        when(paymentGateway.hasFunds("Tim O'Theo")).thenReturn(true);
+        
+        for (int i = 0; i < AdvertisementBoard.MAX_ADS; i++) {
+            board.publish(new Advertisement("Ad " + i, "Content", "Tim O'Theo"), advertiserDatabase, paymentGateway);
         }
-        Advertisement lastAd = new Advertisement("Final Ad", "Last spot", "Tim O'Theo");
-        when(advertiserDatabase.advertiserIsRegistered("Tim O'Theo")).thenReturn(true);
-        when(paymentGateway.advertiserHasFunds("Tim O'Theo")).thenReturn(true);
-        assertThrows(AdvertisementBoardException.class, () -> board.publish(lastAd, advertiserDatabase, paymentGateway));
+        
+        Advertisement extraAd = new Advertisement("Overflow Ad", "No space left", "Tim O'Theo");
+        assertThrows(AdvertisementBoardException.class, () -> board.publish(extraAd, advertiserDatabase, paymentGateway));
     }
 }

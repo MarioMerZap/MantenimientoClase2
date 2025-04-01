@@ -1,0 +1,5 @@
+org\mps\board\Advertisement.class
+org\mps\board\AdvertiserDatabase.class
+org\mps\board\AdvertisementBoardException.class
+org\mps\board\PaymentGateway.class
+org\mps\board\AdvertisementBoard.class
